@@ -88,7 +88,7 @@ function App() {
       setAccounts(acc);
       setState('loading');
       setTxHash('0x');
-      setAddress('0x');
+      setAddress('');
     }
   }
 
