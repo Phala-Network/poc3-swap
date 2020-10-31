@@ -48,17 +48,17 @@ function App() {
   const sig = React.useRef(null)
 
   const setSignature = async() => {
-    let tAddress = u8aToHex(decodeAddress(address));
-    tAddress = tAddress.substr(2, tAddress.length-2);
-    const tTxHash =  txHash.substr(2, txHash.length-2);
-    let msg = tAddress + tTxHash;
     let result = '';
-    if (msg.length === 0) {
-      result = '';
-    } else {
-      const web3Instance = new Web3(provider);
-      const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
-      result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+    if(address.length === 48 && txHash.length === 66) {
+      let tAddress = u8aToHex(decodeAddress(address));
+      tAddress = tAddress.substr(2, tAddress.length-2);
+      const tTxHash =  txHash.substr(2, txHash.length-2);
+      let msg = tAddress + tTxHash;
+      if (msg.length !== 0) {
+        const web3Instance = new Web3(provider);
+        const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
+        result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+      }
     }
     sig && (sig.current.value = result)
   }
