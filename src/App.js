@@ -52,7 +52,7 @@ function App() {
     if(address.length === 48 && txHash.length === 66) {
       let tAddress = u8aToHex(decodeAddress(address));
       tAddress = tAddress.substr(2, tAddress.length-2);
-      const tTxHash =  txHash.substr(2, txHash.length-2);
+      let tTxHash = txHash.substr(2, txHash.length-2);
       let msg = tAddress + tTxHash;
       if (msg.length !== 0) {
         const web3Instance = new Web3(provider);
@@ -87,7 +87,7 @@ function App() {
       const acc = await web3Instance.eth.getAccounts();
       setAccounts(acc);
       setState('loading');
-      setTxHash('0x');
+      setTxHash('');
       setAddress('');
     }
   }
@@ -121,21 +121,21 @@ function App() {
           {accounts.length >= 1 && (
               <>
                 <Spacer />
-                <Input readOnly initialValue={accounts[0]} width="70%">
+                <Input readOnly initialValue={accounts[0]} width="80%">
                   <Description title={t('ETH Account')}/>
                 </Input>
                 <Spacer />
-                <Input clearable initialValue="0x" onChange={handleTxHash} width="70%">
-                  <Description title={t('ETH TxHash')}/>
+                <Input clearable placeholder="ss58 format" onChange={handleAddress} width="80%">
+                  <Description title={t('PHA Address')}/>
                 </Input>
                 <Spacer />
-                <Input clearable initialValue="" onChange={handleAddress} width="70%">
-                  <Description title={t('PHA Address')}/>
+                <Input clearable placeholder="0x prefixed hex" onChange={handleTxHash} width="80%">
+                  <Description title={t('ETH TxHash')}/>
                 </Input>
                 <Spacer />
                 <Button icon={<Icon.FileText />} auto type="secondary" onClick={setSignature} style={width100}>{t('Sign Message')}</Button>
                 <Spacer />
-                <Input readOnly  width="70%" onChange={e => console.log(e.target.value)} ref={sig} />
+                <Input readOnly  width="80%" onChange={e => console.log(e.target.value)} ref={sig} />
               </>
           )}
         </Page.Content>
