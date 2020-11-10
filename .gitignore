@@ -104,4 +104,7 @@ dist
 .tern-port
 
 .DS_store
+
 .idea
+
+build
