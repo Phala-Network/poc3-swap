@@ -6,9 +6,7 @@ import { u8aToHex } from '@polkadot/util';
 import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
-import { network, etherscanBase, loadPhalaTokenContract } from './contracts';
-import BN from "bn.js";
-
+import { loadPhalaTokenContract } from './contracts';
 
 import './App.css';
 
@@ -39,34 +37,45 @@ function App() {
   const [accounts, setAccounts] = useState([]);
   const [state, setState] = useState('notconnected');
   const connectWeb3 = async() => {
-    const provider = await web3Modal.connect();
-    if (provider) {
-      if (provider.on) {
-        provider.on("accountsChanged", (acc) => {
-          console.log(acc);
-          // setAccounts(acc);
-        });
-        provider.on("chainChanged", (chainId) => {
-          console.log(chainId);
-        });
-        provider.on("connect", (info) => { // : { chainId: number }
-          console.log(info);
-        });
-        provider.on("disconnect", (error) => {  // : { code: number; message: string }
-          console.log(error);
-        });
+    try {
+      setCallMetaMask(true);
+      const provider = await web3Modal.connect();
+      if (provider) {
+        if (provider.on) {
+          provider.on("accountsChanged", (acc) => {
+            console.log(acc);
+            // setAccounts(acc);
+          });
+          provider.on("chainChanged", (chainId) => {
+            console.log(chainId);
+          });
+          provider.on("connect", (info) => { // : { chainId: number }
+            console.log(info);
+          });
+          provider.on("disconnect", (error) => {  // : { code: number; message: string }
+            console.log(error);
+          });
+        }
+        const web3Instance = new Web3(provider);
+        setProvider(provider);
+        const acc = await web3Instance.eth.getAccounts();
+        setAccounts(acc);
+        setState('connected');
+        setTabState('sign');
+        setCallMetaMask(false);
+        // TODO: set defult value
+        // setBurnAmount(0.1);
+        // setToAddress('0x000000000000000000000000000000000000dead');
+        setTxHash('');
+        setAddress('');
+        setCallMetaMask(false);
       }
-      const web3Instance = new Web3(provider);
-      setProvider(provider);
-      const acc = await web3Instance.eth.getAccounts();
-      setAccounts(acc);
-      setState('connected');
-      setTabState('sign');
-      // TODO: set defult value
-      // setBurnAmount(0.1);
-      // setToAddress('0x000000000000000000000000000000000000dead');
-      setTxHash('');
-      setAddress('');
+    } catch (err) {
+      setCallMetaMask(false);
+      setToast({
+        text: "Failed: " + err.message,
+        type: "error",
+      });
     }
   }
 
@@ -79,6 +88,7 @@ function App() {
     setState('notconnected');
     setTabState('sign');
     setAccounts([]);
+    setCallMetaMask(false);
     // TODO: set defult value
     // setBurnAmount(0.1);
     // setToAddress('0x000000000000000000000000000000000000dead');
@@ -91,13 +101,16 @@ function App() {
 
   // tab
   const [tabState, setTabState] = useState('sign');
+  const [callMetaMask, setCallMetaMask] = useState(false);
+
   const tabBurn = () => {
-    alert("Send transaction to burn ERC20 PHA tokens and get txHash which can used to claim POC3 testnet PHA tokens, the exchange ratio is 1:1000");
-    setBurnAmount(0.1);
-    setToAddress('0x000000000000000000000000000000000000dead');
+    setBurnAmount(burnAmount);
+    setToAddress(toAddress);
     setTabState('burn');
   }
   const tabSign = () => {
+    setTxHash(txHash);
+    setAddress(address);
     setTabState('sign');
   }
 
@@ -123,8 +136,28 @@ function App() {
       if (msg.length !== 0) {
         const web3Instance = new Web3(provider);
         const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
-        result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+        try {
+          setCallMetaMask(true);
+          result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+          setToast({
+            text: "Success",
+            type: "success",
+          });
+          setCallMetaMask(false);
+        } catch (err) {
+          setCallMetaMask(false);
+          setToast({
+            text: "Failed: " + err.message,
+            type: "error",
+          });
+        }
       }
+    }
+    else {
+      setToast({
+        text: "Failed: invalid address or txHash format",
+        type: "error",
+      });
     }
     sig && (sig.current.value = result)
   }
@@ -143,18 +176,24 @@ function App() {
 
   const tx = useRef(null);
   const sendTx = async() => {
+    alert("Send transaction to burn ERC20 PHA tokens and get txHash which can used to claim POC3 testnet PHA tokens, the exchange ratio is 1:1000");
     let result = '';
     const web3Instance = new Web3(provider);
     const contract = loadPhalaTokenContract(web3Instance);
+    let amount = web3Instance.utils.toWei(burnAmount.toString());
     try {
-      console.log(toAddress);
-      let amount = web3Instance.utils.toWei(burnAmount.toString());
-      console.log(amount);
+      setCallMetaMask(true);
       const receipt = await contract.methods.transfer(toAddress, amount)
           .send({from: accounts[0]});
       setTxHash(receipt.transactionHash);
+      setToast({
+        text: "Success",
+        type: "success",
+      });
       result = receipt.transactionHash;
+      setCallMetaMask(false);
     } catch (err) {
+      setCallMetaMask(false);
       setToast({
         text: "Failed: " + err.message,
         type: "error",
@@ -168,7 +207,7 @@ function App() {
       <Page>
         <Spacer />
         <Page.Header>
-          <Text h3 style={{marginTop: '30px'}} color>PHA {t('Burn & Sign App')}</Text>
+          <Text h3 style={{marginTop: '20px'}} color>PHA {t('Burn & Sign App')}</Text>
           <Text small className='links'>
             <Link href='https://phala.network/' color>Home</Link>
             <Link href='https://t.me/phalanetwork' color>Telegram</Link>
@@ -177,20 +216,12 @@ function App() {
         <Page.Content>
           <Col>
             <Row>
-            {!provider && <Button icon={<Icon.LogIn/>} auto type="secondary" ghost onClick={connectWeb3}>{t('Connect Wallet')}</Button>}
-            {provider && (
-                <Row>
-                  <Button icon={<Icon.LogOut/>} auto type="secondary" ghost onClick={disconnectWeb3}>{t('Disconnect Wallet')}</Button>
-                  <Spacer x={1} />
-                  {tabState === 'burn' && <Button icon={<Icon.Repeat/>} auto type="secondary" ghost onClick={tabSign}>{t('Sign Message')}</Button>}
-                  {tabState === 'sign' && <Button icon={<Icon.Repeat/>} auto type="secondary" ghost onClick={tabBurn}>{t('Burn Tokens')}</Button>}
-
-                </Row>
-            )}
+            {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={callMetaMask}>{t('Connect Wallet')}</Button>}
+            {provider && <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={callMetaMask}>{t('Disconnect Wallet')}</Button>}
             </Row>
 
             <Spacer />
-            <Input readonly placeholder={t('')} initialValue={accounts[0]} onChange={handleTxHash} width="75%">
+            <Input readonly placeholder={t('')} initialValue={accounts[0]} onChange={handleTxHash} width="80%">
               <Description title={t('ETH Account')}/>
             </Input>
 
@@ -199,38 +230,44 @@ function App() {
                 <Col>
                   {tabState === 'sign' && (
                       <Col>
-                        <Text h4 p type="success">{t('Sign Message')}</Text>
+                        <Row>
+                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabBurn} disabled={callMetaMask}>{t('Burn Tokens')}</Button>
+                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabSign} disabled={callMetaMask}>{t('Sign Message')}</Button>
+                        </Row>
                         <Spacer />
-                        <Input clearable placeholder={t('ss58 format')} onChange={handleAddress} width="75%">
+                        <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="80%">
                           <Description title={t('PHA Address')}/>
                         </Input>
                         <Spacer />
-                        <Input clearable placeholder={t('0x prefixed hex')} onChange={handleTxHash} width="75%">
+                        <Input clearable placeholder={t('0x prefixed hex')} initialValue={txHash} onChange={handleTxHash} width="80%">
                           <Description title={t('ETH TxHash')}/>
                         </Input>
                         <Spacer />
-                        <Button icon={<Icon.Edit3 />} auto type="secondary" ghost onClick={setSignature} style={width100}>{t('Generate Signature')}</Button>
+                        <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={setSignature} style={width100} disabled={callMetaMask}>{t('Generate Signature') }</Button>
                         <Spacer />
-                        <Input readonly placeholder={t('')} onChange={e => console.log(e.target.value)} ref={sig} width="75%">
+                        <Input readonly placeholder={t('')} onChange={e => console.log(e.target.value)} ref={sig} width="80%">
                           <Description title={t('Signature')}/>
                         </Input>
                       </Col>
                   )}
                   {tabState === 'burn' && (
                       <Col>
-                        <Text h4 p type="success">{t('Burn Tokens')}</Text>
+                        <Row>
+                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabBurn} disabled={callMetaMask}>{t('Burn Tokens')}</Button>
+                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabSign} disabled={callMetaMask}>{t('Sign Message')}</Button>
+                        </Row>
                         <Spacer />
-                        <Input readonly placeholder={t('')} initialValue={0.1} onChange={handleBurnAmount} width="75%">
+                        <Input readonly placeholder={t('')} initialValue={0.1} onChange={handleBurnAmount} width="80%">
                           <Description title={t('Burn Amount')}/>
                         </Input>
+                        {/*<Spacer />*/}
+                        {/*<Input readonly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="80%">*/}
+                        {/*  <Description title={t('Burn ToAddress')}/>*/}
+                        {/*</Input>*/}
                         <Spacer />
-                        <Input readonly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="75%">
-                          <Description title={t('Burn ToAddress')}/>
-                        </Input>
+                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} style={width100} disabled={callMetaMask}>{t('Send Transaction')}</Button>
                         <Spacer />
-                        <Button icon={<Icon.FileText />} auto type="secondary" ghost onClick={sendTx} style={width100}>{t('Send Transaction')}</Button>
-                        <Spacer />
-                        <Input readonly placeholder={t('')} onChange={e => console.log(e.target.value)} ref={tx} width="75%">
+                        <Input readonly placeholder={t('')} onChange={e => console.log(e.target.value)} ref={tx} width="80%">
                           <Description title={t('ETH TxHash')}/>
                         </Input>
                       </Col>
@@ -259,7 +296,7 @@ const myTheme = {
     "foreground": "#fff",
     "selection": "#D1FF52",
     "secondary": "#888",
-    "success": "#D1FF52",
+    "success": "#708634",
     "successLight": "#D1FF52",
     "successDark": "#D1FF52",
     "code": "#79ffe1",
@@ -271,7 +308,7 @@ const myTheme = {
     "shadowSmall": "0 0 0 1px #333",
     "shadowMedium": "0 0 0 1px #333",
     "shadowLarge": "0 0 0 1px #333",
-    "portalOpacity": 0.75,
+    "portalOpacity": 0.80,
   }
 };
 
