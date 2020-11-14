@@ -3,13 +3,17 @@ import { GeistProvider, CssBaseline, Button, Description, Card, Link, Page, Row,
 import * as Icon from '@geist-ui/react-icons'
 import { decodeAddress } from "@polkadot/util-crypto";
 import { u8aToHex } from '@polkadot/util';
+import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
+import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
-import { loadPhalaTokenContract } from './contracts';
+import { etherscanBase, loadPhalaTokenContract } from './contracts';
 
 import './App.css';
 
+const types = require('./typedefs.json');
+const wsEndPoint = 'wss://poc3.phala.network/ws';
 const providerOptions = {};
 const web3Modal = new Web3Modal({
   cacheProvider: true, // optional
@@ -38,7 +42,7 @@ function App() {
   const [state, setState] = useState('notconnected');
   const connectWeb3 = async() => {
     try {
-      setCallMetaMask(true);
+      setCalling(true);
       const provider = await web3Modal.connect();
       if (provider) {
         if (provider.on) {
@@ -61,17 +65,17 @@ function App() {
         const acc = await web3Instance.eth.getAccounts();
         setAccounts(acc);
         setState('connected');
-        setTabState('sign');
-        setCallMetaMask(false);
+        setTabState('burn');
+        setCalling(false);
         // TODO: set defult value
         // setBurnAmount(0.1);
         // setToAddress('0x000000000000000000000000000000000000dead');
         setTxHash('');
         setAddress('');
-        setCallMetaMask(false);
+        setCalling(false);
       }
     } catch (err) {
-      setCallMetaMask(false);
+      setCalling(false);
       setToast({
         text: "Failed: " + err.message,
         type: "error",
@@ -86,9 +90,9 @@ function App() {
     web3Modal.clearCachedProvider();
     setProvider(null);
     setState('notconnected');
-    setTabState('sign');
+    setTabState('burn');
     setAccounts([]);
-    setCallMetaMask(false);
+    setCalling(false);
     // TODO: set defult value
     // setBurnAmount(0.1);
     // setToAddress('0x000000000000000000000000000000000000dead');
@@ -100,8 +104,8 @@ function App() {
   const [toasts, setToast] = useToasts()
 
   // tab
-  const [tabState, setTabState] = useState('sign');
-  const [callMetaMask, setCallMetaMask] = useState(false);
+  const [tabState, setTabState] = useState('burn');
+  const [calling, setCalling] = useState(false);
 
   const tabBurn = () => {
     setBurnAmount(burnAmount);
@@ -114,7 +118,7 @@ function App() {
     setTabState('sign');
   }
 
-  // sign message
+  // claim tokens
   const [txHash, setTxHash, ] = useState('');
   const handleTxHash = (e) => {
     setTxHash(e.target.value);
@@ -125,41 +129,110 @@ function App() {
     setAddress(e.target.value);
     console.log(e.target.value);
   }
+  const [signature, setSignature] = useState('');
   const sig = useRef(null)
-  const setSignature = async() => {
+  const signMsg = async() => {
     let result = '';
-    if(address.length === 48 && txHash.length === 66) {
-      let tAddress = u8aToHex(decodeAddress(address));
-      tAddress = tAddress.substr(2, tAddress.length-2);
-      let tTxHash = txHash.substr(2, txHash.length-2);
-      let msg = tAddress + tTxHash;
-      if (msg.length !== 0) {
-        const web3Instance = new Web3(provider);
-        const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
-        try {
-          setCallMetaMask(true);
+    try {
+      if(address.length === 48 && txHash.length === 66) {
+        let tAddress = u8aToHex(decodeAddress(address));
+        tAddress = tAddress.substr(2, tAddress.length-2);
+        let tTxHash = txHash.substr(2, txHash.length-2);
+        let msg = tAddress + tTxHash;
+        if (msg.length !== 0) {
+          const web3Instance = new Web3(provider);
+          const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
+          setCalling(true);
           result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+          setSignature(result);
           setToast({
             text: "Success",
             type: "success",
           });
-          setCallMetaMask(false);
-        } catch (err) {
-          setCallMetaMask(false);
-          setToast({
-            text: "Failed: " + err.message,
-            type: "error",
-          });
+          setCalling(false);
         }
       }
-    }
-    else {
+      else {
+        setToast({
+          text: "Failed: Invalid address or txHash format",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      setCalling(false);
       setToast({
-        text: "Failed: invalid address or txHash format",
+        text: "Failed: " + err.message,
         type: "error",
       });
     }
     sig && (sig.current.value = result)
+  }
+
+  const claimTokens = async() => {
+    try {
+      setCalling(true);
+      if(signature === '') {
+        setCalling(false);
+        setToast({
+          text: "Failed: No signature",
+          type: "error",
+        });
+      } else {
+        const wsProvider = new WsProvider(wsEndPoint);
+        const api = await ApiPromise.create({provider: wsProvider, types});
+        await cryptoWaitReady();
+        const txInfo = await api.query.phaClaim.burnedTransactions(txHash);
+        const isClaimed = await api.query.phaClaim.claimState(txHash);
+        console.log(isClaimed.toString())
+        if(txInfo[0].toString() === '0x0000000000000000000000000000000000000000') {
+          setToast({
+            text: "Failed: Your txHash is in crawling, please wait 2 minutes",
+            type: "error",
+          });
+        } else if (isClaimed.toString() === 'true'){
+          setToast({
+            text: "Failed: This txHash has been claimed",
+            type: "error",
+          });
+        } else {
+          const claimTx = api.tx.phaClaim.claimErc20Token(address, txHash, signature);
+          await new Promise(async (resolve, _reject) => {
+            await claimTx.send(({events = [], status}) => {
+              if (status.isInBlock) {
+                let error;
+                for (const e of events) {
+                  const {event: {data, method, section}} = e;
+                  if (section === 'system' && method === 'ExtrinsicFailed') {
+                    error = data[0];
+                  }
+                }
+                if (error) {
+                  throw new Error(`Extrinsic failed : ${error}`);
+                }
+                resolve({
+                  hash: status.asInBlock,
+                  events: events,
+                });
+                setToast({
+                  text: `Success included in ${status.asInBlock}`,
+                  type: "success",
+                });
+              } else if (status.isInvalid) {
+                throw new Error('Invalid transaction');
+                resolve();
+              }
+            });
+          });
+        }
+      }
+      setCalling(false);
+    } catch (err) {
+      setCalling(false);
+      setToast({
+        text: "Failed: " + err.message,
+        type: "error",
+      });
+    }
   }
 
   // burn tokens
@@ -173,27 +246,30 @@ function App() {
     setToAddress(e.target.value);
     console.log(e.target.value);
   }
-
+  const [burnTxHash, setBurnTxHash] = useState('');
   const tx = useRef(null);
+  const [txLink, setTxLink] = useState('');
   const sendTx = async() => {
     alert("Send transaction to burn ERC20 PHA tokens and get txHash which can used to claim POC3 testnet PHA tokens, the exchange ratio is 1:1000");
     let result = '';
-    const web3Instance = new Web3(provider);
-    const contract = loadPhalaTokenContract(web3Instance);
-    let amount = web3Instance.utils.toWei(burnAmount.toString());
     try {
-      setCallMetaMask(true);
+      const web3Instance = new Web3(provider);
+      const contract = loadPhalaTokenContract(web3Instance);
+      let amount = web3Instance.utils.toWei(burnAmount.toString());
+      setCalling(true);
       const receipt = await contract.methods.transfer(toAddress, amount)
           .send({from: accounts[0]});
       setTxHash(receipt.transactionHash);
+      setBurnTxHash(receipt.transactionHash);
+      setTxLink(etherscanBase + '/tx/' + receipt.transactionHash);
       setToast({
         text: "Success",
         type: "success",
       });
       result = receipt.transactionHash;
-      setCallMetaMask(false);
+      setCalling(false);
     } catch (err) {
-      setCallMetaMask(false);
+      setCalling(false);
       setToast({
         text: "Failed: " + err.message,
         type: "error",
@@ -207,21 +283,21 @@ function App() {
       <Page>
         <Spacer />
         <Page.Header>
-          <Text h3 style={{marginTop: '20px'}} color>PHA {t('Burn & Sign App')}</Text>
+          <Text h3 style={{marginTop: '20px'}} color>PHA {t('Exchange App')}</Text>
           <Text small className='links'>
-            <Link href='https://phala.network/' color>Home</Link>
-            <Link href='https://t.me/phalanetwork' color>Telegram</Link>
+            <Link href='https://phala.network/' color target="_blank">Home</Link>
+            <Link href='https://t.me/phalanetwork' color target="_blank">Telegram</Link>
           </Text>
         </Page.Header>
         <Page.Content>
           <Col>
             <Row>
-            {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={callMetaMask}>{t('Connect Wallet')}</Button>}
-            {provider && <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={callMetaMask}>{t('Disconnect Wallet')}</Button>}
+            {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={calling}>{t('Connect Wallet')}</Button>}
+            {provider && <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={calling}>{t('Disconnect Wallet')}</Button>}
             </Row>
 
             <Spacer />
-            <Input readonly placeholder={t('')} initialValue={accounts[0]} onChange={handleTxHash} width="80%">
+            <Input readOnly initialValue={accounts[0]} onChange={handleTxHash} width="80%">
               <Description title={t('ETH Account')}/>
             </Input>
 
@@ -231,8 +307,8 @@ function App() {
                   {tabState === 'sign' && (
                       <Col>
                         <Row>
-                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabBurn} disabled={callMetaMask}>{t('Burn Tokens')}</Button>
-                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabSign} disabled={callMetaMask}>{t('Sign Message')}</Button>
+                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabBurn} disabled={calling}>{t('Burn Tokens')}</Button>
+                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabSign} disabled={calling}>{t('Claim Tokens')}</Button>
                         </Row>
                         <Spacer />
                         <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="80%">
@@ -243,9 +319,13 @@ function App() {
                           <Description title={t('ETH TxHash')}/>
                         </Input>
                         <Spacer />
-                        <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={setSignature} style={width100} disabled={callMetaMask}>{t('Generate Signature') }</Button>
+                        <Row>
+                          <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={signMsg} style={width100} disabled={calling}>{t('Sign Message') }</Button>
+                          <Spacer x = {1}/>
+                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} style={width100} disabled={calling}>{t('Claim') }</Button>
+                        </Row>
                         <Spacer />
-                        <Input readonly placeholder={t('')} onChange={e => console.log(e.target.value)} ref={sig} width="80%">
+                        <Input readOnly initialValue={signature} onChange={e => console.log(e.target.value)} ref={sig} width="80%">
                           <Description title={t('Signature')}/>
                         </Input>
                       </Col>
@@ -253,23 +333,31 @@ function App() {
                   {tabState === 'burn' && (
                       <Col>
                         <Row>
-                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabBurn} disabled={callMetaMask}>{t('Burn Tokens')}</Button>
-                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabSign} disabled={callMetaMask}>{t('Sign Message')}</Button>
+                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabBurn} disabled={calling}>{t('Burn Tokens')}</Button>
+                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabSign} disabled={calling}>{t('Claim Tokens')}</Button>
                         </Row>
                         <Spacer />
-                        <Input readonly placeholder={t('')} initialValue={0.1} onChange={handleBurnAmount} width="80%">
+                        <Input readOnly initialValue={0.1} onChange={handleBurnAmount} width="80%">
                           <Description title={t('Burn Amount')}/>
                         </Input>
                         {/*<Spacer />*/}
-                        {/*<Input readonly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="80%">*/}
+                        {/*<Input readOnly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="80%">*/}
                         {/*  <Description title={t('Burn ToAddress')}/>*/}
                         {/*</Input>*/}
                         <Spacer />
-                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} style={width100} disabled={callMetaMask}>{t('Send Transaction')}</Button>
+                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} style={width100} disabled={calling}>{t('Send Transaction')}</Button>
                         <Spacer />
-                        <Input readonly placeholder={t('')} onChange={e => console.log(e.target.value)} ref={tx} width="80%">
+                        <Input readOnly initialValue={burnTxHash} onChange={e => console.log(e.target.value)} ref={tx} width="80%">
                           <Description title={t('ETH TxHash')}/>
                         </Input>
+                        <Spacer />
+                        {burnTxHash !== '' && (
+                            <Row>
+                              <Text small>
+                                <Link href={txLink} color target="_blank"> {txLink} </Link>
+                              </Text>
+                            </Row>
+                        )}
                       </Col>
                   )}
                 </Col>

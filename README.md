@@ -1,5 +1,5 @@
-# phala-sign-message-app
-A tool for signing PHA claim message.
+# phala-exchange-app
+A tool for exchange ERC20 PHA to POC3 PHA.
 
 ## Install
 ```bash

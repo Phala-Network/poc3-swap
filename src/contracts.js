@@ -1,4 +1,4 @@
-const network = 'kovan';
+const network = 'main';
 const constants = {
     main: {
         etherscanBase: 'https://etherscan.io',
