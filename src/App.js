@@ -134,23 +134,20 @@ function App() {
   const signMsg = async() => {
     let result = '';
     try {
+      setCalling(true);
       if(address.length === 48 && txHash.length === 66) {
         let tAddress = u8aToHex(decodeAddress(address));
         tAddress = tAddress.substr(2, tAddress.length-2);
         let tTxHash = txHash.substr(2, txHash.length-2);
         let msg = tAddress + tTxHash;
-        if (msg.length !== 0) {
-          const web3Instance = new Web3(provider);
-          const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
-          setCalling(true);
-          result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
-          setSignature(result);
-          setToast({
-            text: "Success",
-            type: "success",
-          });
-          setCalling(false);
-        }
+        const web3Instance = new Web3(provider);
+        const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
+        result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+        setSignature(result);
+        setToast({
+          text: "Success",
+          type: "success",
+        });
       }
       else {
         setToast({
@@ -158,6 +155,7 @@ function App() {
           type: "error",
         });
       }
+      setCalling(false);
     } catch (err) {
       setCalling(false);
       setToast({
@@ -171,8 +169,13 @@ function App() {
   const claimTokens = async() => {
     try {
       setCalling(true);
-      if(signature === '') {
-        setCalling(false);
+      if(address.length !== 48 || txHash.length !== 66) {
+        u8aToHex(decodeAddress(address));
+        setToast({
+          text: "Failed: Invalid address or txHash format",
+          type: "error",
+        });
+      } else if(signature === '') {
         setToast({
           text: "Failed: No signature",
           type: "error",
@@ -253,10 +256,10 @@ function App() {
     alert("Send transaction to burn ERC20 PHA tokens and get txHash which can used to claim POC3 testnet PHA tokens, the exchange ratio is 1:1000");
     let result = '';
     try {
+      setCalling(true);
       const web3Instance = new Web3(provider);
       const contract = loadPhalaTokenContract(web3Instance);
       let amount = web3Instance.utils.toWei(burnAmount.toString());
-      setCalling(true);
       const receipt = await contract.methods.transfer(toAddress, amount)
           .send({from: accounts[0]});
       setTxHash(receipt.transactionHash);
