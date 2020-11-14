@@ -67,11 +67,6 @@ function App() {
         setState('connected');
         setTabState('burn');
         setCalling(false);
-        // TODO: set defult value
-        // setBurnAmount(0.1);
-        // setToAddress('0x000000000000000000000000000000000000dead');
-        setTxHash('');
-        setAddress('');
         setCalling(false);
       }
     } catch (err) {
@@ -93,11 +88,6 @@ function App() {
     setTabState('burn');
     setAccounts([]);
     setCalling(false);
-    // TODO: set defult value
-    // setBurnAmount(0.1);
-    // setToAddress('0x000000000000000000000000000000000000dead');
-    setTxHash('');
-    setAddress('');
   }
 
   // error
@@ -112,10 +102,10 @@ function App() {
     setToAddress(toAddress);
     setTabState('burn');
   }
-  const tabSign = () => {
+  const tabClaim = () => {
     setTxHash(txHash);
     setAddress(address);
-    setTabState('sign');
+    setTabState('claim');
   }
 
   // claim tokens
@@ -307,11 +297,11 @@ function App() {
             <Spacer />
             {accounts.length > 0 && (
                 <Col>
-                  {tabState === 'sign' && (
+                  {tabState === 'claim' && (
                       <Col>
                         <Row>
                           <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabBurn} disabled={calling}>{t('Burn Tokens')}</Button>
-                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabSign} disabled={calling}>{t('Claim Tokens')}</Button>
+                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabClaim} disabled={calling}>{t('Claim Tokens')}</Button>
                         </Row>
                         <Spacer />
                         <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="80%">
@@ -337,7 +327,7 @@ function App() {
                       <Col>
                         <Row>
                           <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabBurn} disabled={calling}>{t('Burn Tokens')}</Button>
-                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabSign} disabled={calling}>{t('Claim Tokens')}</Button>
+                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabClaim} disabled={calling}>{t('Claim Tokens')}</Button>
                         </Row>
                         <Spacer />
                         <Input readOnly initialValue={0.1} onChange={handleBurnAmount} width="80%">
