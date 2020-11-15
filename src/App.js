@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useRef} from 'react';
-import { GeistProvider, CssBaseline, Button, Description, Link, Page, Row, Col, Text, Input, Spacer, useMediaQuery, useToasts} from '@geist-ui/react'
+import { GeistProvider, CssBaseline, Button, Spacer, Divider, Link, Page, Row, Col, Text, Input, useMediaQuery, useToasts} from '@geist-ui/react'
 import * as Icon from '@geist-ui/react-icons'
 import { decodeAddress } from "@polkadot/util-crypto";
 import { u8aToHex } from '@polkadot/util';
@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
 import { etherscanBase, phalaBase, wsEndPoint, loadPhalaTokenContract } from './config';
+import { burnMsg, burnAmountNote } from './msg';
 
 import './App.css';
 
@@ -242,7 +243,7 @@ function App() {
   const tx = useRef(null);
   const [burnTxLink, setBurnTxLink] = useState('');
   const sendTx = async() => {
-    alert("Send transaction to burn ERC20 PHA tokens and get txHash which can used to claim POC3 testnet PHA tokens, the exchange ratio is 1:1000");
+    alert(burnMsg);
     let result = '';
     try {
       setCalling(true);
@@ -275,10 +276,11 @@ function App() {
       <Page>
         <Spacer />
         <Page.Header>
-          <Text h3 style={{marginTop: '20px'}} color>PHA {t('Exchange App')}</Text>
-          <Text small className='links'>
+          <Text h3 style={{marginTop: '40px'}} color>tPHA {t('Swap')}</Text>
+          <Text h6 className='links'>
             <Link href='https://phala.network/' color target="_blank">Home</Link>
             <Link href='https://t.me/phalanetwork' color target="_blank">Telegram</Link>
+            <Link href='https://discord.com/invite/zjdJ7d844d' color target="_blank">Discord</Link>
           </Text>
         </Page.Header>
         <Page.Content>
@@ -287,49 +289,12 @@ function App() {
             {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={calling}>{t('Connect Wallet')}</Button>}
             {provider && <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={calling}>{t('Disconnect Wallet')}</Button>}
             </Row>
-
-            <Spacer />
-            <Input readOnly initialValue={accounts[0]} onChange={handleTxHash} width="80%">
-              <Description title={t('ETH Account')}/>
-            </Input>
-
-            <Spacer />
             {accounts.length > 0 && (
                 <Col>
-                  {tabState === 'claim' && (
-                      <Col>
-                        <Row>
-                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabBurn} disabled={calling}>{t('Burn Tokens')}</Button>
-                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabClaim} disabled={calling}>{t('Claim Tokens')}</Button>
-                        </Row>
-                        <Spacer />
-                        <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="80%">
-                          <Description title={t('PHA Address')}/>
-                        </Input>
-                        <Spacer />
-                        <Input clearable placeholder={t('0x prefixed hex')} initialValue={txHash} onChange={handleTxHash} width="80%">
-                          <Description title={t('ETH TxHash')}/>
-                        </Input>
-                        <Spacer />
-                        <Row>
-                          <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={signMsg} disabled={calling}>{t('Sign Message') }</Button>
-                          <Spacer x = {1}/>
-                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} disabled={calling}>{t('Claim') }</Button>
-                        </Row>
-                        <Spacer />
-                        <Input readOnly initialValue={signature} onChange={e => console.log(e.target.value)} ref={sig} width="80%">
-                          <Description title={t('Signature')}/>
-                        </Input>
-                        <Spacer />
-                        {claimTxLink !== '' && (
-                            <Row>
-                              <Text small>
-                                <Link href={claimTxLink} color target="_blank"> {claimTxLink} </Link>
-                              </Text>
-                            </Row>
-                        )}
-                      </Col>
-                  )}
+                  <Spacer />
+                  <Text h6 type="secondary" >{t('ETH ACCOUNT: ') + accounts[0]}</Text>
+                  <Divider y={0} />
+                  <Spacer y={1.5} />
                   {tabState === 'burn' && (
                       <Col>
                         <Row>
@@ -337,24 +302,59 @@ function App() {
                           <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabClaim} disabled={calling}>{t('Claim Tokens')}</Button>
                         </Row>
                         <Spacer />
-                        <Input readOnly initialValue={0.1} onChange={handleBurnAmount} width="80%">
-                          <Description title={t('Burn Amount')}/>
+                        <Input readOnly initialValue={0.1} onChange={handleBurnAmount} width="100%">
+                          <Text h6>{t('BURN AMOUNT')}</Text>
                         </Input>
+                        <Text h6 type="secondary">{burnAmountNote}</Text>
                         {/*<Spacer />*/}
-                        {/*<Input readOnly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="80%">*/}
+                        {/*<Input readOnly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="100%">*/}
                         {/*  <Description title={t('Burn ToAddress')}/>*/}
                         {/*</Input>*/}
-                        <Spacer />
+                        <Spacer y={1.5} />
                         <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} disabled={calling}>{t('Send Transaction')}</Button>
-                        <Spacer />
-                        <Input readOnly initialValue={burnTxHash} onChange={e => console.log(e.target.value)} ref={tx} width="80%">
-                          <Description title={t('ETH TxHash')}/>
+                        <Spacer/>
+                        <Input readOnly initialValue={burnTxHash} onChange={e => console.log(e.target.value)} ref={tx} width="100%">
+                          <Text h6>{t('ETH TXHASH')}</Text>
                         </Input>
                         <Spacer />
                         {burnTxLink !== '' && (
                             <Row>
                               <Text small>
                                 <Link href={burnTxLink} color target="_blank"> {burnTxLink} </Link>
+                              </Text>
+                            </Row>
+                        )}
+                      </Col>
+                  )}
+                  {tabState === 'claim' && (
+                      <Col>
+                        <Row>
+                          <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabBurn} disabled={calling}>{t('Burn Tokens')}</Button>
+                          <Button icon={<Icon.Disc/>} auto shadow type="secondary" onClick={tabClaim} disabled={calling}>{t('Claim Tokens')}</Button>
+                        </Row>
+                        <Spacer />
+                        <Input clearable placeholder={t('0x prefixed hex')} initialValue={txHash} onChange={handleTxHash} width="100%">
+                          <Text h6>{t('ETH TXHASH')}</Text>
+                        </Input>
+                        <Spacer />
+                        <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="100%">
+                          <Text h6>{t('PHA RECIPIENT ADDRESS')}</Text>
+                        </Input>
+                        <Spacer y={1.5} />
+                        <Row>
+                          <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={signMsg} disabled={calling}>{t('Sign Message') }</Button>
+                          <Spacer x = {1}/>
+                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} disabled={calling}>{t('Claim') }</Button>
+                        </Row>
+                        <Spacer />
+                        <Input readOnly initialValue={signature} onChange={e => console.log(e.target.value)} ref={sig} width="100%">
+                          <Text h6>{t('SIGNATURE')}</Text>
+                        </Input>
+                        <Spacer />
+                        {claimTxLink !== '' && (
+                            <Row>
+                              <Text small>
+                                <Link href={claimTxLink} color target="_blank"> {claimTxLink} </Link>
                               </Text>
                             </Row>
                         )}
