@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useRef} from 'react';
-import { GeistProvider, CssBaseline, Button, Spacer, Divider, Link, Page, Row, Col, Text, Input, useMediaQuery, useToasts} from '@geist-ui/react'
+import { GeistProvider, CssBaseline, Button, Spacer, Divider, Note, Link, Page, Row, Col, Text, Input, useMediaQuery, useToasts} from '@geist-ui/react'
 import * as Icon from '@geist-ui/react-icons'
 import { decodeAddress } from "@polkadot/util-crypto";
 import { u8aToHex } from '@polkadot/util';
@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
 import { etherscanBase, phalaBase, wsEndPoint, loadPhalaTokenContract } from './config';
-import { burnMsg, burnAmountNote } from './msg';
+import { burnWarning, burnAmountNote, burnTxLinkPrefix, burnTxLinkSuffix, claimTxLinkPrefix, claimTxLinkSuffix} from './msg';
 
 import './App.css';
 
@@ -119,9 +119,7 @@ function App() {
     console.log(e.target.value);
   }
   const [signature, setSignature] = useState('');
-  const sig = useRef(null)
   const signMsg = async() => {
-    let result = '';
     try {
       setCalling(true);
       if(address.length === 48 && txHash.length === 66) {
@@ -131,7 +129,7 @@ function App() {
         let msg = tAddress + tTxHash;
         const web3Instance = new Web3(provider);
         const prefix = web3Instance.utils.utf8ToHex("\x19Ethereum Signed Message:\n" + (msg.length/2))
-        result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
+        let result = await web3Instance.eth.sign(web3Instance.utils.sha3(prefix + msg), accounts[0]);
         setSignature(result);
         setToast({
           text: "Success",
@@ -152,7 +150,6 @@ function App() {
         type: "error",
       });
     }
-    sig && (sig.current.value = result)
   }
   const [claimTxLink, setClaimTxLink] = useState('');
 
@@ -240,11 +237,9 @@ function App() {
     console.log(e.target.value);
   }
   const [burnTxHash, setBurnTxHash] = useState('');
-  const tx = useRef(null);
   const [burnTxLink, setBurnTxLink] = useState('');
   const sendTx = async() => {
-    alert(burnMsg);
-    let result = '';
+    alert(burnWarning);
     try {
       setCalling(true);
       const web3Instance = new Web3(provider);
@@ -259,7 +254,6 @@ function App() {
         text: "Success",
         type: "success",
       });
-      result = receipt.transactionHash;
       setCalling(false);
     } catch (err) {
       setCalling(false);
@@ -268,7 +262,6 @@ function App() {
         type: "error",
       });
     }
-    tx && (tx.current.value = result);
   }
 
   return (
@@ -276,7 +269,7 @@ function App() {
       <Page>
         <Spacer />
         <Page.Header>
-          <Text h3 style={{marginTop: '40px'}} color>tPHA {t('Swap')}</Text>
+          <Text h3 style={{marginTop: '20px'}} color>tPHA {t('Swap')}</Text>
           <Text h6 className='links'>
             <Link href='https://phala.network/' color target="_blank">Home</Link>
             <Link href='https://t.me/phalanetwork' color target="_blank">Telegram</Link>
@@ -286,15 +279,19 @@ function App() {
         <Page.Content>
           <Col>
             <Row>
-            {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={calling}>{t('Connect Wallet')}</Button>}
-            {provider && <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={calling}>{t('Disconnect Wallet')}</Button>}
+              {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={calling}>{t('Connect Wallet')}</Button>}
+              {provider && (
+                  <Row>
+                    <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={calling}>{t('Disconnect Wallet')}</Button>
+                    <Spacer x={2}/>
+                    <Note small label={t('ETH ACCOUNT')}>{accounts[0]}</Note>
+                  </Row>
+              )}
             </Row>
+            <Divider y={3} />
+            <Spacer y={1} />
             {accounts.length > 0 && (
                 <Col>
-                  <Spacer />
-                  <Text h6 type="secondary" >{t('ETH ACCOUNT: ') + accounts[0]}</Text>
-                  <Divider y={0} />
-                  <Spacer y={1.5} />
                   {tabState === 'burn' && (
                       <Col>
                         <Row>
@@ -305,24 +302,30 @@ function App() {
                         <Input readOnly initialValue={0.1} onChange={handleBurnAmount} width="100%">
                           <Text h6>{t('BURN AMOUNT')}</Text>
                         </Input>
-                        <Text h6 type="secondary">{burnAmountNote}</Text>
+                        <Text small type="secondary">{burnAmountNote}</Text>
                         {/*<Spacer />*/}
                         {/*<Input readOnly placeholder={t('')} initialValue={'0x000000000000000000000000000000000000dead'} onChange={handleToAddress} width="100%">*/}
                         {/*  <Description title={t('Burn ToAddress')}/>*/}
                         {/*</Input>*/}
-                        <Spacer y={1.5} />
-                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} disabled={calling}>{t('Send Transaction')}</Button>
-                        <Spacer/>
-                        <Input readOnly initialValue={burnTxHash} onChange={e => console.log(e.target.value)} ref={tx} width="100%">
-                          <Text h6>{t('ETH TXHASH')}</Text>
-                        </Input>
                         <Spacer />
+                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} disabled={calling}>{t('Send Transaction')}</Button>
+                        <Spacer y={1}/>
+                        {(burnTxHash !== '' || burnTxLink !== '') && <Divider y={2} />}
+                        {burnTxHash !== '' && (
+                            <Col>
+                              <Input readOnly initialValue={burnTxHash} width="100%">
+                                <Text h6>{t('ETH TXHASH')}</Text>
+                              </Input>
+                            </Col>
+                        )}
                         {burnTxLink !== '' && (
-                            <Row>
-                              <Text small>
-                                <Link href={burnTxLink} color target="_blank"> {burnTxLink} </Link>
+                            <Col>
+                              <Text small type="secondary">
+                                {burnTxLinkPrefix}
+                                <a href={burnTxLink} target="_blank">Etherscan</a>
+                                {burnTxLinkSuffix}
                               </Text>
-                            </Row>
+                            </Col>
                         )}
                       </Col>
                   )}
@@ -340,23 +343,29 @@ function App() {
                         <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="100%">
                           <Text h6>{t('PHA RECIPIENT ADDRESS')}</Text>
                         </Input>
-                        <Spacer y={1.5} />
+                        <Spacer />
                         <Row>
                           <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={signMsg} disabled={calling}>{t('Sign Message') }</Button>
                           <Spacer x = {1}/>
                           <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} disabled={calling}>{t('Claim') }</Button>
                         </Row>
-                        <Spacer />
-                        <Input readOnly initialValue={signature} onChange={e => console.log(e.target.value)} ref={sig} width="100%">
-                          <Text h6>{t('SIGNATURE')}</Text>
-                        </Input>
-                        <Spacer />
+                        <Spacer y={1}/>
+                        {(signature !== '' || claimTxLink !== '') && <Divider y={2} />}
+                        {signature !== '' && (
+                            <Col>
+                              <Input readOnly initialValue={signature} width="100%">
+                                <Text h6>{t('SIGNATURE')}</Text>
+                              </Input>
+                            </Col>
+                        )}
                         {claimTxLink !== '' && (
-                            <Row>
-                              <Text small>
-                                <Link href={claimTxLink} color target="_blank"> {claimTxLink} </Link>
+                            <Col>
+                              <Text small type="secondary">
+                                {claimTxLinkPrefix}
+                                <a href={claimTxLink} target="_blank">Phala PoC-3 Console</a>
+                                {claimTxLinkSuffix}
                               </Text>
-                            </Row>
+                            </Col>
                         )}
                       </Col>
                   )}
