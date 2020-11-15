@@ -1,19 +1,18 @@
 import React, { Suspense, useState, useRef} from 'react';
-import { GeistProvider, CssBaseline, Button, Description, Card, Link, Page, Row, Col, Text, Input, Spacer, useMediaQuery, useToasts} from '@geist-ui/react'
+import { GeistProvider, CssBaseline, Button, Description, Link, Page, Row, Col, Text, Input, Spacer, useMediaQuery, useToasts} from '@geist-ui/react'
 import * as Icon from '@geist-ui/react-icons'
 import { decodeAddress } from "@polkadot/util-crypto";
 import { u8aToHex } from '@polkadot/util';
-import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
+import { ApiPromise, WsProvider } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
-import { etherscanBase, loadPhalaTokenContract } from './contracts';
+import { etherscanBase, phalaBase, wsEndPoint, loadPhalaTokenContract } from './config';
 
 import './App.css';
 
 const types = require('./typedefs.json');
-const wsEndPoint = 'wss://poc3.phala.network/ws';
 const providerOptions = {};
 const web3Modal = new Web3Modal({
   cacheProvider: true, // optional
@@ -34,7 +33,6 @@ function Loading() {
 function App() {
   const { t } = useTranslation();
   const isXS = useMediaQuery('xs');
-  const width100 = isXS ? {width: '100%'} : {};
 
   // Web3 connection
   const [provider, setProvider] = useState(null);
@@ -155,6 +153,7 @@ function App() {
     }
     sig && (sig.current.value = result)
   }
+  const [claimTxLink, setClaimTxLink] = useState('');
 
   const claimTokens = async() => {
     try {
@@ -206,13 +205,13 @@ function App() {
                   hash: status.asInBlock,
                   events: events,
                 });
+                setClaimTxLink(phalaBase + '/#/explorer/query/' + status.asInBlock.toHex().toString());
                 setToast({
-                  text: `Success included in ${status.asInBlock}`,
+                  text: `Success included in ${status.asInBlock.toHex()}`,
                   type: "success",
                 });
               } else if (status.isInvalid) {
                 throw new Error('Invalid transaction');
-                resolve();
               }
             });
           });
@@ -241,7 +240,7 @@ function App() {
   }
   const [burnTxHash, setBurnTxHash] = useState('');
   const tx = useRef(null);
-  const [txLink, setTxLink] = useState('');
+  const [burnTxLink, setBurnTxLink] = useState('');
   const sendTx = async() => {
     alert("Send transaction to burn ERC20 PHA tokens and get txHash which can used to claim POC3 testnet PHA tokens, the exchange ratio is 1:1000");
     let result = '';
@@ -253,8 +252,8 @@ function App() {
       const receipt = await contract.methods.transfer(toAddress, amount)
           .send({from: accounts[0]});
       setTxHash(receipt.transactionHash);
-      setBurnTxHash(receipt.transactionHash);
-      setTxLink(etherscanBase + '/tx/' + receipt.transactionHash);
+      setBurnTxHash(receipt.transactionHash)
+      setBurnTxLink(etherscanBase + '/tx/' + receipt.transactionHash);
       setToast({
         text: "Success",
         type: "success",
@@ -313,14 +312,22 @@ function App() {
                         </Input>
                         <Spacer />
                         <Row>
-                          <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={signMsg} style={width100} disabled={calling}>{t('Sign Message') }</Button>
+                          <Button icon={<Icon.Edit3 />} auto shadow ghost  type="secondary"  onClick={signMsg} disabled={calling}>{t('Sign Message') }</Button>
                           <Spacer x = {1}/>
-                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} style={width100} disabled={calling}>{t('Claim') }</Button>
+                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} disabled={calling}>{t('Claim') }</Button>
                         </Row>
                         <Spacer />
                         <Input readOnly initialValue={signature} onChange={e => console.log(e.target.value)} ref={sig} width="80%">
                           <Description title={t('Signature')}/>
                         </Input>
+                        <Spacer />
+                        {claimTxLink !== '' && (
+                            <Row>
+                              <Text small>
+                                <Link href={claimTxLink} color target="_blank"> {claimTxLink} </Link>
+                              </Text>
+                            </Row>
+                        )}
                       </Col>
                   )}
                   {tabState === 'burn' && (
@@ -338,16 +345,16 @@ function App() {
                         {/*  <Description title={t('Burn ToAddress')}/>*/}
                         {/*</Input>*/}
                         <Spacer />
-                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} style={width100} disabled={calling}>{t('Send Transaction')}</Button>
+                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} disabled={calling}>{t('Send Transaction')}</Button>
                         <Spacer />
                         <Input readOnly initialValue={burnTxHash} onChange={e => console.log(e.target.value)} ref={tx} width="80%">
                           <Description title={t('ETH TxHash')}/>
                         </Input>
                         <Spacer />
-                        {burnTxHash !== '' && (
+                        {burnTxLink !== '' && (
                             <Row>
                               <Text small>
-                                <Link href={txLink} color target="_blank"> {txLink} </Link>
+                                <Link href={burnTxLink} color target="_blank"> {burnTxLink} </Link>
                               </Text>
                             </Row>
                         )}

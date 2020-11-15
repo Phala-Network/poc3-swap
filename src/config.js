@@ -1,13 +1,29 @@
-const network = 'main';
-const constants = {
+const ethNetwork = 'main';
+const phalaNetwork = 'test';
+const ethConstants = {
     main: {
         etherscanBase: 'https://etherscan.io',
         tokenAddress: '0x6c5bA91642F10282b576d91922Ae6448C9d52f4E',
     },
     kovan: {
         etherscanBase: 'https://kovan.etherscan.io',
-        tokenAddress: '0xfe0c0a5a7fdeb2ecae3e1567568923e035472091'
+        tokenAddress: '0xfe0c0a5a7fdeb2ecae3e1567568923e035472091',
     }
+};
+
+const phalaConstants = {
+  main: {
+    phalaBase: '',
+    wsEndPoint: '',
+  },
+  test: {
+    phalaBase: 'https://poc3.phala.network',
+    wsEndPoint: 'wss://poc3.phala.network/ws',
+  },
+  local: {
+    phalaBase: 'https://poc3.phala.network',
+    wsEndPoint: 'ws://127.0.0.1:9944',
+  }
 };
 
 function loadPhalaTokenContract(web3) {
@@ -15,8 +31,10 @@ function loadPhalaTokenContract(web3) {
     return new web3.eth.Contract(phalaTokenABI, phalaTokenAddress);
 }
 
-const etherscanBase = constants[network].etherscanBase;
-const phalaTokenAddress = constants[network].tokenAddress;
+const etherscanBase = ethConstants[ethNetwork].etherscanBase;
+const phalaTokenAddress = ethConstants[ethNetwork].tokenAddress;
+const phalaBase = phalaConstants[phalaNetwork].phalaBase;
+const wsEndPoint = phalaConstants[phalaNetwork].wsEndPoint;
 const phalaTokenABI = [
   {
     "constant": true,
@@ -483,8 +501,10 @@ const phalaTokenABI = [
 ];
 
 export {
-    network,
+    ethNetwork,
     etherscanBase,
+    phalaBase,
+    wsEndPoint,
     phalaTokenAddress,
     phalaTokenABI,
     loadPhalaTokenContract
