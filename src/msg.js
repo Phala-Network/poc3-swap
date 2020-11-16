@@ -7,7 +7,8 @@ const burnTxLinkPrefix = "You can find your burning transaction id on ";
 const burnTxLinkSuffix = ". You can claim the swapped tPHA only after the transaction is confirmed on the Ethereum blockchain.";
 const claimTxLinkPrefix = "Successfully claimed. You can check you balance at ";
 const claimTxLinkSuffix = ".";
-
+const walletErrorPrefix = "Wallet error, please check if you have ";
+const walletErrorSuffix = " or other wallet installed, if installed, please refresh this page"
 export {
     burnWarning,
     burnAmountNote,
@@ -15,4 +16,6 @@ export {
     burnTxLinkSuffix,
     claimTxLinkPrefix,
     claimTxLinkSuffix,
+    walletErrorPrefix,
+    walletErrorSuffix,
 };
