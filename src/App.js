@@ -337,7 +337,7 @@ function App() {
                         {!burnCalling && burnTxHash !== '' && burnTxError === '' && (
                             <Col>
                               <Input readOnly initialValue={burnTxHash} width="100%">
-                                <Text h6>{t('ETH TXHASH')}</Text>
+                                <Text h6>{t('ETH TXID')}</Text>
                               </Input>
                               <Spacer y={0.3} />
                             </Col>
@@ -368,7 +368,7 @@ function App() {
                         </Row>
                         <Spacer />
                         <Input clearable placeholder={t('0x prefixed hex')} initialValue={txHash} onChange={handleTxHash} width="100%">
-                          <Text h6>{t('ETH TXHASH')}</Text>
+                          <Text h6>{t('ETH TXID')}</Text>
                         </Input>
                         <Spacer />
                         <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="100%">
