@@ -61,14 +61,10 @@ function App() {
   const [connectError, setConnectError] = useState('');
 
   const connectWeb3 = async() => {
+
     try {
       setCalling(true);
       setConnectCalling(true);
-      try{
-        await web3Modal.connect();
-      } catch (err) {
-        throw new Error("Not found wallet");
-      }
       const provider = await web3Modal.connect();
       if (provider) {
         if (provider.on) {
@@ -216,15 +212,22 @@ function App() {
       setSignCalling(true);
       setClaimCalling(true);
       if(address.length !== 48 || txHash.length !== 66) {
-        throw new Error('Invalid address or txHash format');
+        setCalling(false);
+        setSignCalling(false);
+        setClaimCalling(false);
+        setClaimTxError('Error: Invalid address or txHash format');
+        setToast({
+          text: "Failed: Invalid address or txHash format",
+          type: "error",
+        });
       } else {
         let tAddress = u8aToHex(decodeAddress(address));
         tAddress = tAddress.substr(2, tAddress.length-2);
         let tTxHash = txHash.substr(2, txHash.length-2);
         let msg = tAddress + tTxHash;
         const web3Instance = new Web3(provider);
-        let result = await web3Instance.eth.personal.sign('0x' + msg, accounts[0], '');
-        setSignature(result);
+        let sig = await web3Instance.eth.personal.sign('0x' + msg, accounts[0], '');
+        setSignature(sig);
         setSignCalling(false);
         const wsProvider = new WsProvider(wsEndPoint);
         const api = await ApiPromise.create({provider: wsProvider, types});
@@ -232,11 +235,25 @@ function App() {
         const txInfo = await api.query.phaClaim.burnedTransactions(txHash);
         const isClaimed = await api.query.phaClaim.claimState(txHash);
         if(txInfo[0].toString() === '0x0000000000000000000000000000000000000000') {
-          throw new Error('This txHash is in crawling, please wait 2 minutes and retry');
+          setCalling(false);
+          setSignCalling(false);
+          setClaimCalling(false);
+          setClaimTxError('Error: This txHash is in crawling, please wait 2 minutes and retry');
+          setToast({
+            text: "Failed: This txHash is in crawling, please wait 2 minutes and retry",
+            type: "error",
+          });
         } else if (isClaimed.toString() === 'true'){
-          throw new Error('This txHash has been claimed');
+          setCalling(false);
+          setSignCalling(false);
+          setClaimCalling(false);
+          setClaimTxError('Error: This txHash has been claimed');
+          setToast({
+            text: "Failed: This txHash has been claimed",
+            type: "error",
+          });
         } else {
-          const claimTx = api.tx.phaClaim.claimErc20Token(address, txHash, signature);
+          const claimTx = api.tx.phaClaim.claimErc20Token(address, txHash, sig);
           await new Promise(async (resolve, _reject) => {
             await claimTx.send(({events = [], status}) => {
               if (status.isInBlock) {
@@ -271,8 +288,8 @@ function App() {
       setClaimCalling(false);
     } catch (err) {
       setCalling(false);
-      setClaimCalling(false);
       setSignCalling(false);
+      setClaimCalling(false);
       setClaimTxError('Error: ' + err.message);
       setToast({
         text: "Failed: " + err.message,
