@@ -45,6 +45,7 @@ function App() {
 
   // call state
   const [calling, setCalling] = useState(false);
+  const [connectCalling, setConnectCalling] = useState(false);
   const [burnCalling, setBurnCalling] = useState(false);
   const [signCalling, setSignCalling] = useState(false);
   const [claimCalling, setClaimCalling] = useState(false);
@@ -62,6 +63,7 @@ function App() {
   const connectWeb3 = async() => {
     try {
       setCalling(true);
+      setConnectCalling(true);
       try{
         await web3Modal.connect();
       } catch (err) {
@@ -91,7 +93,6 @@ function App() {
         setAccounts(acc);
         setState('connected');
         setTabState('burn');
-        setCalling(false);
         setBurnCalling(false);
         setSignCalling(false);
         setClaimCalling(false);
@@ -102,9 +103,12 @@ function App() {
           type: "success",
         });
         setConnectError('');
+        setCalling(false);
+        setConnectCalling(false);
       }
     } catch (err) {
       setCalling(false);
+      setConnectCalling(false);
       setConnectError('Error: ' + err.message);
       setToast({
         text: "Failed: " + err.message,
@@ -120,9 +124,16 @@ function App() {
     web3Modal.clearCachedProvider();
     setProvider(null);
     setState('notconnected');
-    setTabState('burn');
     setAccounts([]);
+    setTabState('burn');
+    setBurnCalling(false);
+    setSignCalling(false);
+    setClaimCalling(false);
+    setBurnTxError('');
+    setClaimTxError('');
+    setConnectError('');
     setCalling(false);
+    setConnectCalling(false);
   }
 
   // tab state
@@ -285,7 +296,7 @@ function App() {
         <Page.Content>
           <Col>
             <Row>
-              {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost  type="secondary" onClick={connectWeb3} disabled={calling}>{t('Connect Wallet')}</Button>}
+              {!provider && <Button icon={<Icon.LogIn/>} auto shadow ghost type="secondary" onClick={connectWeb3} loading={connectCalling} disabled={calling && !connectCalling}>{t('Connect Wallet')}</Button>}
               {provider && (
                   <Row align="middle">
                     <Button icon={<Icon.LogOut/>} auto shadow ghost  type="secondary" onClick={disconnectWeb3} disabled={calling}>{t('Disconnect Wallet')}</Button>
@@ -321,7 +332,7 @@ function App() {
                         <Spacer y={0.3} />
                         <Text small type="secondary">{burnAmountNote}</Text>
                         <Spacer />
-                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} disabled={calling}>{t('Click To Burn')}</Button>
+                        <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} loading={burnCalling} disabled={calling && !burnCalling}>{t('Click To Burn')}</Button>
                         {(burnTxHash !== '' || burnTxLink !== '' || burnTxError !== '' || calling) && <Divider y={2} />}
                         {!burnCalling && burnTxHash !== '' && burnTxError === '' && (
                             <Col>
@@ -365,7 +376,7 @@ function App() {
                         </Input>
                         <Spacer />
                         <Row>
-                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} disabled={calling}>{t('Click To Claim') }</Button>
+                          <Button icon={<Icon.Repeat />} auto shadow ghost  type="secondary"  onClick={claimTokens} loading={claimCalling} disabled={calling && !claimCalling}>{t('Click To Claim') }</Button>
                         </Row>
                         {(signature !== '' || claimTxLink !== '' || claimTxError !== '' || calling) && <Divider y={2} />}
                         {!signCalling  && signature !== '' && (
@@ -392,11 +403,6 @@ function App() {
                               </Text>
                             </Col>
                         )}
-                      </Col>
-                  )}
-                  {calling && (
-                      <Col>
-                          <Spinner size="large" type="success" />
                       </Col>
                   )}
                 </Col>
