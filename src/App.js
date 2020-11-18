@@ -8,6 +8,7 @@ import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
+import Raven from 'raven-js'
 
 import {
   ethNetwork,
@@ -30,6 +31,7 @@ import {
 
 import './App.css';
 
+Raven.config('https://6259686285ce469f9222c63f918700e7@o478466.ingest.sentry.io/5521029');
 const types = require('./typedefs.json');
 const providerOptions = {};
 const web3Modal = new Web3Modal({
@@ -149,12 +151,10 @@ function App() {
   const [burnAmount, setBurnAmount, ] = useState(0.1);
   const handleBurnAmount = (e) => {
     setBurnAmount(e.target.value);
-    console.log(e.target.value);
   }
   const [toAddress, setToAddress] = useState('0x000000000000000000000000000000000000dead');
   const handleToAddress = (e) => {
     setToAddress(e.target.value);
-    console.log(e.target.value);
   }
   const [burnTxHash, setBurnTxHash] = useState('');
   const [burnTxLink, setBurnTxLink] = useState('');
@@ -183,6 +183,8 @@ function App() {
     } catch (err) {
       setCalling(false);
       setBurnCalling(false);
+      let sentryMsg = "Burn error: " + "Account: " + accounts[0] + ' ' +  err.message;
+      Raven.captureException(sentryMsg);
       setBurnTxError('Error: ' + err.message);
       setToast({
         text: "Failed: " + err.message,
@@ -196,12 +198,10 @@ function App() {
   const [txHash, setTxHash, ] = useState('');
   const handleTxHash = (e) => {
     setTxHash(e.target.value);
-    console.log(e.target.value);
   }
   const [address, setAddress] = useState('');
   const handleAddress = (e) => {
     setAddress(e.target.value);
-    console.log(e.target.value);
   }
   const [signature, setSignature] = useState('');
   const [claimTxLink, setClaimTxLink] = useState('');
@@ -216,6 +216,9 @@ function App() {
         setSignCalling(false);
         setClaimCalling(false);
         setClaimTxError('Error: Invalid address or txHash format');
+        let sentryMsg = "Claim error: " + "Account: " + accounts[0] + "Address: " + address + "TxId: " + txHash + " "
+            +  "Error: Invalid address or txHash format";
+        Raven.captureException(sentryMsg);
         setToast({
           text: "Failed: Invalid address or txHash format",
           type: "error",
@@ -238,6 +241,9 @@ function App() {
           setCalling(false);
           setSignCalling(false);
           setClaimCalling(false);
+          let sentryMsg = "Claim error: " + "Account: " + accounts[0] + " Address: " + address + " TxId: " + txHash
+              +  " Error: This txHash is in crawling, please wait 2 minutes and retry";
+          Raven.captureException(sentryMsg);
           setClaimTxError('Error: This txHash is in crawling, please wait 2 minutes and retry');
           setToast({
             text: "Failed: This txHash is in crawling, please wait 2 minutes and retry",
@@ -278,7 +284,18 @@ function App() {
                 });
                 setClaimTxError('');
               } else if (status.isInvalid) {
-                throw new Error('Invalid transaction');
+
+                setCalling(false);
+                setSignCalling(false);
+                setClaimCalling(false);
+                let sentryMsg = "Claim error: " + "Account: " + accounts[0] + " Address: " + address + " TxId: " + txHash
+                    + " Signature: " + sig +  " Error: Invalid transaction";
+                Raven.captureException(sentryMsg);
+                setClaimTxError('Error: Invalid transaction');
+                setToast({
+                  text: "Failed: Invalid transaction",
+                  type: "error",
+                });
               }
             });
           });
@@ -290,6 +307,9 @@ function App() {
       setCalling(false);
       setSignCalling(false);
       setClaimCalling(false);
+      let sentryMsg = "Claim error: " + "Account: " + accounts[0] + "Address: " + address + "TxId: " + txHash + " "
+          +  err.message;
+      Raven.captureException(sentryMsg);
       setClaimTxError('Error: ' + err.message);
       setToast({
         text: "Failed: " + err.message,
