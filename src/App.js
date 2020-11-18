@@ -216,7 +216,7 @@ function App() {
         setSignCalling(false);
         setClaimCalling(false);
         setClaimTxError('Error: Invalid address or txHash format');
-        let sentryMsg = "Claim error: " + "Account: " + accounts[0] + "Address: " + address + "TxId: " + txHash + " "
+        let sentryMsg = "Claim error: " + "Account: " + accounts[0] + " Address: " + address + " TxId: " + txHash + " "
             +  "Error: Invalid address or txHash format";
         Raven.captureException(sentryMsg);
         setToast({
