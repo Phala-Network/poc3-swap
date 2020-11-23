@@ -21,6 +21,8 @@ import {
 import {
   burnWarning,
   burnAmountNote,
+  burnButtonLinkPrefix,
+  burnButtonLinkSuffix,
   burnTxLinkPrefix,
   burnTxLinkSuffix,
   claimTxLinkPrefix,
@@ -96,6 +98,7 @@ function App() {
         setClaimCalling(false);
         setBurnTxError('');
         setClaimTxError('');
+        setBurnButtonLink(etherscanBase + '/address/' + acc[0]);
         setToast({
           text: "Success: Connect to your wallet",
           type: "success",
@@ -158,6 +161,7 @@ function App() {
   }
   const [burnTxHash, setBurnTxHash] = useState('');
   const [burnTxLink, setBurnTxLink] = useState('');
+  const [burnButtonLink, setBurnButtonLink] = useState('');
   const [burnTxError, setBurnTxError] = useState('');
 
   const sendTx = async() => {
@@ -370,7 +374,12 @@ function App() {
                         <Text small type="secondary">{burnAmountNote}</Text>
                         <Spacer />
                         <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} loading={burnCalling} disabled={calling && !burnCalling}>{t('Click To Burn')}</Button>
-                        {(burnTxHash !== '' || burnTxLink !== '' || burnTxError !== '' || calling) && <Divider y={2} />}
+                        <Spacer y={0.3} />
+                        <Text small type="secondary">
+                          {burnButtonLinkPrefix}
+                          <a href={burnButtonLink} target="_blank" rel="noreferrer">Etherscan</a>
+                          {burnButtonLinkSuffix}
+                        </Text>                        {(burnTxHash !== '' || burnTxLink !== '' || burnTxError !== '' || calling) && <Divider y={2} />}
                         {!burnCalling && burnTxHash !== '' && burnTxError === '' && (
                             <Col>
                               <Input readOnly initialValue={burnTxHash} width="100%">

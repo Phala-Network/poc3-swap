@@ -3,6 +3,8 @@ const burnWarning = "You are going to BURN 0.1PHA tokens on Ethereum. Once it's 
     "\nPhala added this design to prevent spam miners and fake competition in Miner Race Ranking.";
 
 const burnAmountNote = "The amount is restricted to 0.1 PHA to avoid accidental asset loss. Ask in our Discord if you want swap more."
+const burnButtonLinkPrefix = "After clicking the button, please wait patiently and do not refresh the page before the transaction is completed. You can check the transaction status of your address on ";
+const burnButtonLinkSuffix = ".";
 const burnTxLinkPrefix = "You can find your burning transaction id on ";
 const burnTxLinkSuffix = ". You can claim the swapped tPHA only after the transaction is confirmed on the Ethereum blockchain.";
 const claimTxLinkPrefix = "Successfully claimed. You can check you balance at ";
@@ -12,6 +14,8 @@ const walletErrorSuffix = " or other wallet installed, if installed, please refr
 export {
     burnWarning,
     burnAmountNote,
+    burnButtonLinkPrefix,
+    burnButtonLinkSuffix,
     burnTxLinkPrefix,
     burnTxLinkSuffix,
     claimTxLinkPrefix,
