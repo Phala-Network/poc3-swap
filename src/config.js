@@ -13,12 +13,12 @@ const ethConstants = {
 
 const phalaConstants = {
   main: {
-    phalaBase: '',
-    wsEndPoint: '',
+    phalaBase: 'https://poc3.phala.network',
+    wsEndPoint: 'wss://poc3a.phala.network/ws',
   },
   test: {
     phalaBase: 'https://poc3.phala.network',
-    wsEndPoint: 'wss://poc3.phala.network/ws',
+    wsEndPoint: 'wss://poc3a.phala.network/ws',
   },
   local: {
     phalaBase: 'https://poc3.phala.network',
