@@ -219,12 +219,12 @@ function App() {
         setCalling(false);
         setSignCalling(false);
         setClaimCalling(false);
-        setClaimTxError('Error: Invalid address or txHash format');
+        setClaimTxError('Error: Invalid address or TxID format');
         let sentryMsg = "Claim error: " + "Account: " + accounts[0] + " Address: " + address + " TxId: " + txHash + " "
-            +  "Error: Invalid address or txHash format";
+            +  "Error: Invalid address or TxID format";
         Raven.captureException(sentryMsg);
         setToast({
-          text: "Failed: Invalid address or txHash format",
+          text: "Failed: Invalid address or TxID format",
           type: "error",
         });
       } else {
@@ -246,20 +246,20 @@ function App() {
           setSignCalling(false);
           setClaimCalling(false);
           let sentryMsg = "Claim error: " + "Account: " + accounts[0] + " Address: " + address + " TxId: " + txHash
-              +  " Error: This txHash is in crawling, please wait 2 minutes and retry";
+              +  " Error: TxID not found. Please check if it's correct, or wait a few minutes and retry";
           Raven.captureException(sentryMsg);
-          setClaimTxError('Error: This txHash is in crawling, please wait 2 minutes and retry');
+          setClaimTxError('Error: TxID not found, please check if it\'s correct, or wait a few minutes and retry');
           setToast({
-            text: "Failed: This txHash is in crawling, please wait 2 minutes and retry",
+            text: "Failed: TxID not found",
             type: "error",
           });
         } else if (isClaimed.toString() === 'true'){
           setCalling(false);
           setSignCalling(false);
           setClaimCalling(false);
-          setClaimTxError('Error: This txHash has been claimed');
+          setClaimTxError('Error: This tx has been claimed');
           setToast({
-            text: "Failed: This txHash has been claimed",
+            text: "Failed: This tx has been claimed",
             type: "error",
           });
         } else {
@@ -281,7 +281,7 @@ function App() {
                   hash: status.asInBlock,
                   events: events,
                 });
-                setClaimTxLink(phalaBase + '/#/explorer/query/' + status.asInBlock.toHex().toString());
+                setClaimTxLink(phalaBase + '/polkadotjs/#/explorer/query/' + status.asInBlock.toHex().toString());
                 setToast({
                   text: "Success: Claim poc3 tokens",
                   type: "success",
