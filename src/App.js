@@ -165,7 +165,7 @@ function App() {
   const [burnTxError, setBurnTxError] = useState('');
 
   const sendTx = async() => {
-    alert(burnWarning);
+    alert(burnWarning.replace("{{BURN_AMOUNT}}", burnAmount.toString()));
     try {
       setCalling(true);
       setBurnCalling(true);
@@ -367,7 +367,7 @@ function App() {
                           <Button icon={<Icon.Circle/>} auto ghost style={{ color:"#888" }} onClick={tabClaim} disabled={calling}>{t('Claim Tokens')}</Button>
                         </Row>
                         <Spacer />
-                        <Input readOnly initialValue={0.1} onChange={handleBurnAmount} width="100%">
+                        <Input initialValue={0.1} onChange={handleBurnAmount} width="100%">
                           <Text h6>{t('BURN AMOUNT')}</Text>
                         </Input>
                         <Spacer y={0.3} />
