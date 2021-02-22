@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useRef} from 'react';
+import React, { Suspense, useState, useRef, useEffect} from 'react';
 import { GeistProvider, CssBaseline, Button, Spacer, Divider, Note, Loading, Spinner,Link, Page, Row, Col, Text, Input, useMediaQuery, useToasts} from '@geist-ui/react'
 import * as Icon from '@geist-ui/react-icons'
 import { decodeAddress } from "@polkadot/util-crypto";
@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import Web3 from "web3";
 import Web3Modal from "web3modal";
 import Raven from 'raven-js'
+import i18next from './i18n'
 
 import {
   ethNetwork,
@@ -19,8 +20,6 @@ import {
 } from './config';
 
 import {
-  burnWarning,
-  burnAmountNote,
   burnButtonLinkPrefix,
   burnButtonLinkSuffix,
   burnTxLinkPrefix,
@@ -152,6 +151,8 @@ function App() {
 
   // burn tokens
   const [burnAmount, setBurnAmount, ] = useState(0.1);
+  const [burnWarnInfo, setBurnWarnInfo, ] = useState(() => i18next.t('burnWarning', { 'BURN_AMOUNT': burnAmount, 'BURN_AMOUNT_IN_TPHA': burnAmount * 10000 }));
+
   const handleBurnAmount = (e) => {
     setBurnAmount(e.target.value);
   }
@@ -164,8 +165,13 @@ function App() {
   const [burnButtonLink, setBurnButtonLink] = useState('');
   const [burnTxError, setBurnTxError] = useState('');
 
+  useEffect(()=>{
+    setBurnWarnInfo(i18next.t('burnWarning', { 'BURN_AMOUNT': burnAmount, 'BURN_AMOUNT_IN_TPHA': burnAmount * 10000 })); 
+  },[burnAmount]);
+
   const sendTx = async() => {
-    alert(burnWarning.replace("{{BURN_AMOUNT}}", burnAmount.toString()));
+    alert(burnWarnInfo);
+
     try {
       setCalling(true);
       setBurnCalling(true);
@@ -371,7 +377,6 @@ function App() {
                           <Text h6>{t('BURN AMOUNT')}</Text>
                         </Input>
                         <Spacer y={0.3} />
-                        <Text small type="secondary">{burnAmountNote}</Text>
                         <Spacer />
                         <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} loading={burnCalling} disabled={calling && !burnCalling}>{t('Click To Burn')}</Button>
                         <Spacer y={0.3} />
@@ -418,7 +423,7 @@ function App() {
                         </Input>
                         <Spacer />
                         <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="100%">
-                          <Text h6>{t('PHA RECIPIENT ADDRESS')}</Text>
+                          <Text h6>{t('tPHA RECIPIENT ADDRESS')}</Text>
                         </Input>
                         <Spacer />
                         <Row>
