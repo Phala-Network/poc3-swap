@@ -165,7 +165,9 @@ function App() {
   const [burnTxError, setBurnTxError] = useState('');
 
   const sendTx = async() => {
-    alert(burnWarning.replace("{{BURN_AMOUNT}}", burnAmount.toString()));
+    let amoutInTpha = burnAmount * 10000;
+    alert(burnWarning.replace("{{BURN_AMOUNT}}", burnAmount.toString())
+                     .replace("{{BURN_AMOUNT_IN_TPHA}}", amoutInTpha.toString()));
     try {
       setCalling(true);
       setBurnCalling(true);
@@ -371,7 +373,6 @@ function App() {
                           <Text h6>{t('BURN AMOUNT')}</Text>
                         </Input>
                         <Spacer y={0.3} />
-                        <Text small type="secondary">{burnAmountNote}</Text>
                         <Spacer />
                         <Button icon={<Icon.FileText />} auto shadow ghost type="secondary" onClick={sendTx} loading={burnCalling} disabled={calling && !burnCalling}>{t('Click To Burn')}</Button>
                         <Spacer y={0.3} />
@@ -418,7 +419,7 @@ function App() {
                         </Input>
                         <Spacer />
                         <Input clearable placeholder={t('ss58 format')} initialValue={address} onChange={handleAddress} width="100%">
-                          <Text h6>{t('PHA RECIPIENT ADDRESS')}</Text>
+                          <Text h6>{t('tPHA RECIPIENT ADDRESS')}</Text>
                         </Input>
                         <Spacer />
                         <Row>
